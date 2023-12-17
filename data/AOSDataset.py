@@ -6,10 +6,6 @@ from torch.utils.data import Dataset
 import torchvision
 import torchvision.transforms as transforms
 
-import glob
-import os
-from itertools import groupby
-
 class AOSDataset(Dataset):
     """
     A custom dataset class for handling AOS data.
@@ -62,8 +58,6 @@ class AOSDataset(Dataset):
 
         for folder in self.folders:
             files = os.listdir(folder)
-
-            test_files = get_filter_raw_image_paths(folder)
 
             # Find all unique datapoints. 
             unique_ids = sorted({int(parts[1]) for filename in files if filename.endswith(".png") and (parts := filename.split('_')) and len(parts) >= 2 and parts[1].isdigit()})
