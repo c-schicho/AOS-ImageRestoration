@@ -17,9 +17,12 @@ class AOSDataset(Dataset):
         relative_path (bool, optional): Whether input folders are specified as relative paths. Defaults to True.
         maximum_datasize (int, optional): Maximum number of samples to load. Defaults to None.
     """
-    def __init__(self, folders: list[str], transform: torchvision.transforms.Compose = transforms.Compose([transforms.ToTensor()]),
-                 target_transform: torchvision.transforms.Compose = transforms.Compose([transforms.ToTensor()]), relative_path: bool = True,
-                 maximum_datasize: int = None):
+    def __init__(self, 
+                folders: list[str], 
+                transform: torchvision.transforms.Compose = transforms.Compose([transforms.ToTensor()]),
+                target_transform: torchvision.transforms.Compose = transforms.Compose([transforms.ToTensor()]), 
+                relative_path: bool = True,
+                maximum_datasize: int = None):
         """
         Initializes the AOSDataset.
 
@@ -52,7 +55,7 @@ class AOSDataset(Dataset):
         # 0_{id}_GT_pose_0_thermal.png
 
         # The features are named as follows#
-        # "0_{id}_pose_{i}_thermal.png" 
+        # 0_{id}_pose_{i}_thermal.png
         
         data = []
 
@@ -81,8 +84,6 @@ class AOSDataset(Dataset):
                     break
 
         return data
-
-
 
     def __len__(self) -> int:
         """
