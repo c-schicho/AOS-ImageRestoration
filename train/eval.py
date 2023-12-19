@@ -2,6 +2,7 @@ from typing import Tuple
 
 import torch
 from pytorch_msssim import ssim
+from torcheval.metrics.functional import peak_signal_noise_ratio as psnr
 from tqdm import tqdm
 
 from model import AOSRestoration
@@ -40,11 +41,3 @@ def eval_model(model: AOSRestoration, config: Config) -> Tuple[float, float]:
             )
 
     return avg_psnr, avg_ssim
-
-
-def psnr(output: torch.Tensor, target: torch.Tensor, data_range: int = 255) -> float:
-    output /= data_range
-    target /= target
-    mse = torch.mean((output - target) ** 2)
-    score = -10 * torch.log10(mse)
-    return score
