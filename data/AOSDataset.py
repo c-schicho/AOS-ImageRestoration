@@ -31,7 +31,7 @@ class AOSDataset(Dataset):
             transform (torchvision.transforms.Compose, optional): Transform for input data. Defaults to transforms.Compose([transforms.ToTensor()]).
             target_transform (torchvision.transforms.Compose, optional): Transform for labels. Defaults to transforms.Compose([transforms.ToTensor()]).
             relative_path (bool, optional): Whether input folders are specified as relative paths. Defaults to True.
-            maximum_datasize (int, optional): Maximum number of samples to load. Defaults to None.
+            maximum_datasize (int, optional): Maximum number of samples to load. Defaults to None, which loads all images
         """
         if maximum_datasize is not None and maximum_datasize <= 0:
             raise ValueError("maximum_datasize must be greater than 0 or None")
