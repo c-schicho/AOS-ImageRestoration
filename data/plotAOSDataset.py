@@ -1,10 +1,14 @@
 from PIL import Image
-import AOSDataset
 from torchvision.transforms.functional import to_pil_image
 from torch.utils.data import DataLoader
 import torch
 import torchvision.transforms as transforms
 from IPython.display import display
+
+
+import datasets.AOSDataset as AOSDataset
+import dataloaders.AOSDataloader as AOSDataloader
+
 
 def plot_dataset(dataset: AOSDataset, N_images: int = 1, shuffle: bool = True):
     
@@ -74,3 +78,36 @@ def data_to_image(*data: torch.Tensor,
     ])
     
     return to_image(big_pic)
+
+
+def plot_dataloader(dataloader: AOSDataloader, N_images: int = 1, shuffle: bool = True):
+    
+    """
+    Plot the label image and 11 feature images side by side.
+
+    Parameters:
+    """
+
+    for n in range(N_images):
+
+        feature, label = next(iter(dataloader))
+        batches, feature_channels, x_size, y_size = feature.shape
+        _, label_channels, _,_ = label.shape
+
+        n_images_to_show =  feature_channels+label_channels
+
+        # paste together
+        # features
+        feature_images = feature.detach().cpu()
+        xs = feature_images.view(-1, 1, x_size, y_size)  # unflatten
+        x_im = data_to_image(*xs)
+        
+        # labels
+        label = label.detach().cpu()
+        xl = label[0,0].view(-1, 1, x_size, y_size)  # unflatten
+        x_re = data_to_image(*xl)
+        
+        im = Image.new('L', (n_images_to_show * x_size, y_size))
+        im.paste(x_im, (y_size, 0))
+        im.paste(x_re, (0, 0))
+        display(im, metadata={'width': '100%'})
