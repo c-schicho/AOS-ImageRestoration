@@ -1,5 +1,6 @@
 import torch
-from data import AOSDataset, AOSDataloader
+from AOSDataset import AOSDataset
+from AOSDataloader import AOSDataloader
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 import torchvision
@@ -38,7 +39,8 @@ def get_aos_loaders(train_ratio: float = 0.8,
                     num_workers: int = 0,
                     transform: torchvision.transforms.Compose = G_DEFAULT_TRANSFORM,
                     target_transform: torchvision.transforms.Compose = G_DEFAULT_TARGET_TRANSFORM,
-                    seed: int = 42) -> Tuple[DataLoader, DataLoader]:
+                    seed: int = 42,
+                    dataset_folder:str =  "../focal_dataset") -> Tuple[DataLoader, DataLoader]:
     """
     Get PyTorch DataLoaders for training and testing AOSDataset with image restoration transforms.
 
@@ -54,24 +56,10 @@ def get_aos_loaders(train_ratio: float = 0.8,
 
     Returns:
         Tuple[DataLoader, DataLoader]: DataLoader for the training set and DataLoader for the testing set.
-    """
-
-    # Define the dataset locations
-    G_DATASETS_LOCATION = {
-        1: "../dataset/Part1",
-        2: "../dataset/Part2",
-        3: "../dataset/Part3"
-    }
-    # choose data sets to include in processing
-    G_DATASETS = {1: True,
-                    2: True,
-                    3: False}
-
-    # Select datasets based on availability
-    G_DATASET_LOCATION = [G_DATASETS_LOCATION[dataset_id] for dataset_id, include_dataset in G_DATASETS.items() if include_dataset]
+    """    
 
     # Create AOSDataset instance with specified transforms
-    dataset = AOSDataset(G_DATASET_LOCATION,
+    dataset = AOSDataset(dataset_folder,
                          transform=transform,
                          target_transform=target_transform)
 

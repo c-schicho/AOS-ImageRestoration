@@ -1,6 +1,5 @@
 from PIL import Image
-
-from data import AOSDataset
+import AOSDataset
 from torchvision.transforms.functional import to_pil_image
 from torch.utils.data import DataLoader
 import torch
