@@ -44,7 +44,9 @@ def AOSDataloader(dataset: Dataset,
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
     # Create DataLoader for train set
-    train_loader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=shuffle,
+    train_loader = DataLoader(train_dataset, 
+                              batch_size=train_batch_size, 
+                              shuffle=shuffle,
                               num_workers=num_workers, collate_fn=collate_fn,
                               pin_memory=pin_memory, drop_last=drop_last,
                               timeout=timeout, worker_init_fn=worker_init_fn)

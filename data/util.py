@@ -15,8 +15,8 @@ G_DEFAULT_TRANSFORM = transforms.Compose([
     transforms.ToPILImage(),
     transforms.RandomHorizontalFlip(),
     transforms.RandomVerticalFlip(),
-    #transforms.RandomCrop(patch_size), # insert patch size here
     transforms.Lambda(lambda x: x if torch.rand(1).item() > 0.5 else InvertChannels()(x)),
+    #transforms.RandomCrop(patch_size,  pad_if_needed=True),
     transforms.ToTensor()
 ])
 
@@ -50,8 +50,8 @@ def get_aos_loaders(train_ratio: float = 0.8,
         transforms.ToPILImage(),
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
-        transforms.RandomCrop(patch_size,  pad_if_needed=True),
         transforms.Lambda(lambda x: x if torch.rand(1).item() > 0.5 else InvertChannels()(x)),
+        transforms.RandomCrop(patch_size,  pad_if_needed=True),
         transforms.ToTensor()
     ])
 

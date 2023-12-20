@@ -58,28 +58,35 @@ class AOSDataset(Dataset):
         """
         data = []
 
+        # Collect all file paths in the root folder and its subfolders
+        all_files = []
         for root, dirs, files in os.walk(self.folder):
-            # Find all unique datapoints.
-            unique_ids = sorted({int(parts[1]) for filename in files if filename.endswith(".png") and (parts := filename.split('_')) and len(parts) >= 2 and parts[1].isdigit()})
+            all_files.extend([os.path.join(root, file) for file in files])
 
-            for id in unique_ids:
-                label_filename = f"0_{id}_GT_pose_0_thermal.png"
-                label_filepath = os.path.join(root, label_filename)
+        # Find all unique datapoints.
+        unique_ids = sorted({int(parts[-5]) for filename in all_files if filename.endswith(".png") and (parts := filename.split('_')) and len(parts) >= 2 and parts[-5].isdigit()})
 
-                feature_filenames = [f"0_{id}_integral_focal_{i:03d}_cm.png" for i in self.focal_stack]
-                feature_filepaths = [os.path.join(root, filename) for filename in feature_filenames]
+        for id in unique_ids:
+            label_filename = f"0_{id}_GT_pose_0_thermal.png"
+            label_filepath = next((file for file in all_files if label_filename in file), None)
 
-                # Check if both label and all training data files exist
-                if label_filename in files and all(training_file in files for training_file in feature_filenames):
-                    data.append({
-                        'label': label_filepath,
-                        'training_data': feature_filepaths
-                    })
+            feature_filenames = [f"0_{id}_integral_focal_{i:03d}_cm.png" for i in self.focal_stack]
+            feature_filepaths = [next((file for file in all_files if feature_filename in file), None) for feature_filename in feature_filenames]
+  
+            # Check if both label and all training data files exist
+            if label_filepath in all_files and all(training_file in all_files for training_file in feature_filepaths):
+                data.append({
+                    'label': label_filepath,
+                    'training_data': feature_filepaths
+                })
 
-                if self.maximum_datasize is not None and len(data) == self.maximum_datasize:
-                    break
+            if self.maximum_datasize is not None and len(data) == self.maximum_datasize:
+                break
 
         return data
+
+
+
 
     def __len__(self) -> int:
         """
