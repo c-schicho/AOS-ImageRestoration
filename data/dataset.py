@@ -132,3 +132,6 @@ class AOSDataset(Dataset):
         features = images[:-1]
 
         return features, labels
+
+
+
