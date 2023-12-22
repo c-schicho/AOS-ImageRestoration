@@ -75,10 +75,13 @@ def train(config: Config):
         progress_bar.set_description(f"Train Iter: [{n_iter}/{config.num_iter}] Loss: {avg_loss:.4f}")
 
         if n_iter % config.eval_period == 0 or n_iter == config.num_iter:
-            eval_psnr, eval_ssim = eval_model(model, config, writer, n_iter, 100)
+            eval_psnr, eval_ssim, eval_mse = eval_model(model, config, writer, n_iter, 100)
             writer.add_scalar(tag="train_loss", scalar_value=avg_loss, global_step=n_iter)
-            writer.add_scalars(main_tag="eval_metrics", tag_scalar_dict={"psnr": eval_psnr, "ssim": eval_ssim},
-                               global_step=n_iter)
+            writer.add_scalars(
+                main_tag="eval_metrics",
+                tag_scalar_dict={"psnr": eval_psnr, "ssim": eval_ssim, "mse": eval_mse},
+                global_step=n_iter
+            )
 
             avg_loss = 0
             n_loss = 0

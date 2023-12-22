@@ -3,6 +3,7 @@ from typing import Tuple, Union
 
 import torch
 from pytorch_msssim import ssim
+from torch.nn.functional import mse_loss
 from torch.utils.tensorboard import SummaryWriter
 from torcheval.metrics.functional import peak_signal_noise_ratio as psnr
 from tqdm import tqdm
@@ -26,9 +27,10 @@ def eval_model(
         writer: Union[SummaryWriter, None] = None,
         step: int = 0,
         n_images: Union[int, None] = None
-) -> Tuple[float, float]:
+) -> Tuple[float, float, float]:
     total_psnr = 0.0
     total_ssim = 0.0
+    total_mse = 0.0
     n_iter = 0
 
     test_data_path = os.path.join(config.data_path, config.data_name, "test")
@@ -49,15 +51,17 @@ def eval_model(
 
             outputs = model(inputs)
 
-            total_psnr += psnr(outputs, targets)
-            total_ssim += ssim(outputs, targets)
+            total_psnr += psnr(targets, outputs)
+            total_ssim += ssim(targets, outputs)
+            total_mse += mse_loss(targets, outputs)
 
             n_iter += 1
 
             avg_psnr = total_psnr / n_iter
             avg_ssim = total_ssim / n_iter
+            avg_mse = total_mse / n_iter
             progress_bar.set_description(
-                f"Test Iter: [{n_iter}/{len(data_loader)}] PSNR: {avg_psnr:2f} SSIM: {avg_ssim:3f}"
+                f"Test Iter: [{n_iter}/{len(data_loader)}] PSNR: {avg_psnr:2f} SSIM: {avg_ssim:3f} MSE: {avg_mse}"
             )
 
             if writer is not None and n_iter % 10 == 0:
@@ -66,4 +70,4 @@ def eval_model(
                 writer.add_images(tag="eval_output_images", img_tensor=outputs.cpu(), global_step=writer_step)
                 writer.add_images(tag="eval_target_images", img_tensor=targets.cpu(), global_step=writer_step)
 
-    return avg_psnr, avg_ssim
+    return avg_psnr, avg_ssim, avg_mse
