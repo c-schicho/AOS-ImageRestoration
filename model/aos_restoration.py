@@ -1,6 +1,3 @@
-from dataclasses import dataclass
-from typing import List
-
 import torch
 import torch.nn as nn
 
@@ -8,13 +5,7 @@ from model.restormer import Restormer
 from utils import Config
 
 
-@dataclass
 class AosRestorationConfig:
-    num_blocks: List[int]
-    num_heads: List[int]
-    channels: List[int]
-    num_refinement: int
-    expansion_factor: float
 
     def __init__(self, config: Config):
         self.num_blocks = config.num_blocks

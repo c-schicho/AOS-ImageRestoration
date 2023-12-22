@@ -1,3 +1,4 @@
+import os
 from typing import Tuple
 
 import torch
@@ -5,6 +6,7 @@ from pytorch_msssim import ssim
 from torcheval.metrics.functional import peak_signal_noise_ratio as psnr
 from tqdm import tqdm
 
+from data import get_single_aos_loader
 from model import AOSRestoration
 from utils import Config
 
@@ -19,7 +21,16 @@ def eval_model(model: AOSRestoration, config: Config) -> Tuple[float, float]:
     total_ssim = 0.0
     n_iter = 0
 
-    data_loader = get_test_loader(batch_size=config.test_batch_size)  # TODO
+    test_data_path = os.path.join(config.data_path, config.data_name, "test")
+    data_loader = get_single_aos_loader(
+        test_data_path,
+        config.test_batch_size,
+        512,
+        100,  # TODO
+        config.workers,
+        False
+    )
+
     model.eval()
 
     with torch.no_grad():

@@ -15,7 +15,6 @@ def aos_dataloader(
         train_batch_size: int = 32,
         test_batch_size: int = 32,
         shuffle: bool = True,
-        seed: int = 42,
         num_workers: int = 0,
         collate_fn=None,
         pin_memory: bool = False,
@@ -30,7 +29,6 @@ def aos_dataloader(
         train_batch_size (int): The batch size for the training DataLoader.
         test_batch_size (int): The batch size for the testing DataLoader.
         shuffle (bool): If True, the data is shuffled at every epoch.
-        seed (int): The random seed for the generator. If None, no seed is set.
         num_workers (int): How many subprocesses to use for data loading.
         collate_fn: Specifies how to collate multiple samples into a batch.
         pin_memory (bool): If True, the data loader will copy Tensors into CUDA pinned memory before returning them.
@@ -42,8 +40,6 @@ def aos_dataloader(
         train_loader (DataLoader): DataLoader for the training set.
         test_loader (DataLoader): DataLoader for the testing set.
     """
-    if seed is not None:
-        torch.manual_seed(seed)
 
     train_size = int(train_ratio * len(dataset))
     test_size = len(dataset) - train_size
@@ -71,8 +67,7 @@ def get_aos_loaders(
         test_batch_size: int = 32,
         shuffle: bool = True,
         num_workers: int = 0,
-        seed: int = 42,
-        patch_size=[512, 512],
+        patch_size: Tuple[int, int] = (512, 512),
         dataset_folder: str = "../focal_dataset"
 ) -> Tuple[DataLoader, DataLoader]:
     """
@@ -84,21 +79,12 @@ def get_aos_loaders(
         test_batch_size (int): The batch size for the testing DataLoader.
         shuffle (bool): If True, the data is shuffled at every epoch.
         num_workers (int): How many subprocesses to use for data loading.
-        seed (int): The random seed for the generator. If None, no seed is set.
 
     Returns:
         Tuple[DataLoader, DataLoader]: DataLoader for the training set and DataLoader for the testing set.
     """
 
-    transform = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.Lambda(lambda x: x if torch.rand(1).item() > 0.5 else invert_channels(x)),
-        transforms.RandomCrop(patch_size, pad_if_needed=True),
-        transforms.ToTensor()
-    ])
-
+    transform = __get_default_transform(patch_size)
     dataset = AOSDataset(dataset_folder, transform=transform)
 
     train_loader, test_loader = aos_dataloader(
@@ -107,8 +93,31 @@ def get_aos_loaders(
         train_batch_size=train_batch_size,
         test_batch_size=test_batch_size,
         shuffle=shuffle,
-        num_workers=num_workers,
-        seed=seed
+        num_workers=num_workers
     )
 
     return train_loader, test_loader
+
+
+def get_single_aos_loader(
+        dataset_folder: str,
+        batch_size: int,
+        patch_size: int,
+        dataset_len: int,
+        num_workers: int = 1,
+        shuffle: bool = True
+) -> DataLoader:
+    transform = __get_default_transform((patch_size, patch_size))
+    dataset = AOSDataset(dataset_folder, transform=transform, maximum_datasize=dataset_len)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
+
+
+def __get_default_transform(patch_size: Tuple[int, int]) -> transforms.Compose:
+    return transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        transforms.Lambda(lambda x: x if torch.rand(1).item() > 0.5 else invert_channels(x)),
+        transforms.RandomCrop(patch_size, pad_if_needed=True),
+        transforms.ToTensor()
+    ])
