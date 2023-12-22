@@ -13,6 +13,7 @@ class AosRestorationConfig:
         self.channels = config.channels
         self.num_refinement = config.num_refinement
         self.expansion_factor = config.expansion_factor
+        self.num_focal_planes = config.num_focal_planes
 
 
 class AOSRestoration(nn.Module):
@@ -24,11 +25,12 @@ class AOSRestoration(nn.Module):
             config.num_heads,
             config.channels,
             config.num_refinement,
-            config.expansion_factor
+            config.expansion_factor,
+            config.num_focal_planes
         )
         self.out = nn.Sequential(
             nn.ELU(inplace=True),
-            nn.Conv2d(in_channels=3, out_channels=1, kernel_size=1),
+            nn.Conv2d(in_channels=config.num_focal_planes, out_channels=1, kernel_size=1),
             nn.ReLU(inplace=True)
         )
 

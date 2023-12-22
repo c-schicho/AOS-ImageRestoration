@@ -33,6 +33,7 @@ class Config:
         self.train: bool = args.train
         self.eval_period: int = args.eval_period
         self.run_id: str = args.run_id
+        self.save_each_model: bool = args.save_each_model
 
 
 def parse_args() -> Config:
@@ -49,11 +50,11 @@ def parse_args() -> Config:
                         help="number of channels for each level")
     parser.add_argument("--expansion_factor", type=float, default=2.66, help="factor of channel expansion for GDFN")
     parser.add_argument("--num_refinement", type=int, default=4, help="number of channels for refinement stage")
-    parser.add_argument("--num_iter", type=int, default=300000, help="iterations of training")
+    parser.add_argument("--num_iter", type=int, default=300_000, help="iterations of training")
     parser.add_argument("--batch_size", nargs='+', type=int, default=[16, 12, 8, 8, 4, 4],
                         help="batch size of loading images for progressive learning")
     parser.add_argument("--test_batch_size", type=int, default=1, help="batch size for evaluation of the model")
-    parser.add_argument("--patch_size", nargs='+', type=int, default=[32, 40, 48, 64, 80, 96],
+    parser.add_argument("--patch_size", nargs='+', type=int, default=[48, 50, 72, 96, 120, 144],
                         help="patch size of each image for progressive learning")
     parser.add_argument("--lr", type=float, default=0.0003, help="initial learning rate")
     parser.add_argument("--milestones", nargs='+', type=int, default=[92_000, 156_000, 204_000, 240_000, 276_000],
@@ -65,6 +66,8 @@ def parse_args() -> Config:
     parser.add_argument("--eval_period", type=int, default=10_000, help="eval after each num of iterations")
     parser.add_argument("--run_id", type=str, default=f"run_{int(round(time.time() * 1000))}",
                         help="id for the tensorboard results")
+    parser.add_argument("--save_each_model", type=bool, default=False,
+                        help="whether to save each model or only the best")
 
     return init_config(parser.parse_args())
 

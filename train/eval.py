@@ -1,8 +1,9 @@
 import os
-from typing import Tuple
+from typing import Tuple, Union
 
 import torch
 from pytorch_msssim import ssim
+from torch.utils.tensorboard import SummaryWriter
 from torcheval.metrics.functional import peak_signal_noise_ratio as psnr
 from tqdm import tqdm
 
@@ -12,11 +13,20 @@ from utils import Config
 
 
 def eval(config: Config):
-    model = AOSRestoration.get_model_from_config(config)
-    eval_model(model, config)
+    writer = SummaryWriter(config.result_path)
+    model = (AOSRestoration
+             .get_model_from_config(config)
+             .load(config.model_file))
+    eval_model(model, config, writer)
 
 
-def eval_model(model: AOSRestoration, config: Config) -> Tuple[float, float]:
+def eval_model(
+        model: AOSRestoration,
+        config: Config,
+        writer: Union[SummaryWriter, None] = None,
+        step: int = 0,
+        n_images: Union[int, None] = None
+) -> Tuple[float, float]:
     total_psnr = 0.0
     total_ssim = 0.0
     n_iter = 0
@@ -26,9 +36,8 @@ def eval_model(model: AOSRestoration, config: Config) -> Tuple[float, float]:
         test_data_path,
         config.test_batch_size,
         512,
-        100,  # TODO
-        config.workers,
-        False
+        n_images,
+        config.workers
     )
 
     model.eval()
@@ -50,5 +59,11 @@ def eval_model(model: AOSRestoration, config: Config) -> Tuple[float, float]:
             progress_bar.set_description(
                 f"Test Iter: [{n_iter}/{len(data_loader)}] PSNR: {avg_psnr:2f} SSIM: {avg_ssim:3f}"
             )
+
+            if writer is not None and n_iter % 10 == 0:
+                writer_step = step + n_iter
+                writer.add_images(tag="eval_input_images", img_tensor=inputs.cpu(), global_step=writer_step)
+                writer.add_images(tag="eval_output_images", img_tensor=outputs.cpu(), global_step=writer_step)
+                writer.add_images(tag="eval_target_images", img_tensor=targets.cpu(), global_step=writer_step)
 
     return avg_psnr, avg_ssim

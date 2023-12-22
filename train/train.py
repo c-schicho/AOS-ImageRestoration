@@ -20,8 +20,16 @@ def train(config: Config):
     best_eval_ssim = float('-inf')
     n_milestone = 0
 
+    avg_loss = 0  # between evaluations
+    n_loss = 0
+
     writer = SummaryWriter(config.result_path)
     model = AOSRestoration.get_model_from_config(config).cuda()
+
+    if config.model_file:
+        model.load(config.model_file)
+        print('model checkpoint loaded successfully')
+
     optimizer = AdamW(model.parameters(), lr=config.lr, weight_decay=1e-4)
     lr_scheduler = CosineAnnealingLR(optimizer, T_max=config.num_iter, eta_min=1e-6)
 
@@ -33,18 +41,23 @@ def train(config: Config):
             end_iter = config.milestones[n_milestone] if n_milestone < len(config.milestones) else config.num_iter
             start_iter = config.milestones[n_milestone - 1] if n_milestone > 0 else 0
             length = config.batch_size[n_milestone] * (end_iter - start_iter)
-            train_loader = iter(
-                get_single_aos_loader(
-                    train_data_path,
-                    config.batch_size[n_milestone],
-                    config.patch_size[n_milestone],
-                    length,
-                    config.workers
-                )
+            train_loader = get_single_aos_loader(
+                train_data_path,
+                config.batch_size[n_milestone],
+                config.patch_size[n_milestone],
+                length,
+                config.workers
             )
+            train_loader_iter = iter(train_loader)
             n_milestone += 1
 
-        inputs, targets = next(train_loader)
+        try:
+            inputs, targets = next(train_loader_iter)
+        except StopIteration:
+            # needed if there are not enough datapoints
+            train_loader_iter = iter(train_loader)
+            inputs, targets = next(train_loader_iter)
+
         inputs, targets = inputs.cuda(), targets.cuda()
 
         model.train()
@@ -56,19 +69,21 @@ def train(config: Config):
         optimizer.step()
         lr_scheduler.step()
 
-        progress_bar.set_description(f"Train Iter: [{n_iter}/{config.num_iter}] Loss: {loss.item():.4f}")
+        avg_loss = (loss.item() + n_loss * avg_loss) / (n_loss + 1)
+        n_loss += 1
+
+        progress_bar.set_description(f"Train Iter: [{n_iter}/{config.num_iter}] Loss: {avg_loss:.4f}")
 
         if n_iter % config.eval_period == 0 or n_iter == config.num_iter:
-            writer.add_scalar(tag="train_loss", scalar_value=loss.item(), global_step=n_iter)
-            writer.add_images(tag="input_images", img_tensor=inputs.cpu(), global_step=n_iter)
-            writer.add_images(tag="output_images", img_tensor=outputs.cpu(), global_step=n_iter)
-            writer.add_images(tag="target_images", img_tensor=targets.cpu(), global_step=n_iter)
-
-            eval_psnr, eval_ssim = eval_model(model, config)
+            eval_psnr, eval_ssim = eval_model(model, config, writer, n_iter, 100)
+            writer.add_scalar(tag="train_loss", scalar_value=avg_loss, global_step=n_iter)
             writer.add_scalars(main_tag="eval_metrics", tag_scalar_dict={"psnr": eval_psnr, "ssim": eval_ssim},
                                global_step=n_iter)
 
-            if eval_psnr > best_eval_psnr or eval_ssim > best_eval_ssim:
+            avg_loss = 0
+            n_loss = 0
+
+            if config.save_each_model or eval_psnr > best_eval_psnr or eval_ssim > best_eval_ssim:
                 if eval_psnr > best_eval_psnr:
                     best_eval_psnr = eval_psnr
 
