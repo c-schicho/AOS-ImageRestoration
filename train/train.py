@@ -46,7 +46,8 @@ def train(config: Config):
                 config.batch_size[n_milestone],
                 config.patch_size[n_milestone],
                 length,
-                config.workers
+                config.workers,
+                config.focal_planes
             )
             train_loader_iter = iter(train_loader)
             n_milestone += 1
@@ -75,16 +76,8 @@ def train(config: Config):
         progress_bar.set_description(f"Train Iter: [{n_iter}/{config.num_iter}] Loss: {avg_loss:.4f}")
 
         if n_iter % config.eval_period == 0 or n_iter == config.num_iter:
-            eval_psnr, eval_ssim, eval_mse = eval_model(model, config, writer, n_iter, 100)
             writer.add_scalar(tag="train_loss", scalar_value=avg_loss, global_step=n_iter)
-            writer.add_scalars(
-                main_tag="eval_metrics",
-                tag_scalar_dict={"psnr": eval_psnr, "ssim": eval_ssim, "mse": eval_mse},
-                global_step=n_iter
-            )
-
-            avg_loss = 0
-            n_loss = 0
+            eval_psnr, eval_ssim, _ = eval_model(model, config, writer, n_iter, 100)
 
             if config.save_each_model or eval_psnr > best_eval_psnr or eval_ssim > best_eval_ssim:
                 if eval_psnr > best_eval_psnr:
@@ -96,3 +89,6 @@ def train(config: Config):
                 current_time_in_millis = int(round(time.time() * 1000))
                 model_path = os.path.join(config.result_path, f"model_{n_iter}_{current_time_in_millis}.pt")
                 model.save(model_path)
+
+            avg_loss = 0
+            n_loss = 0

@@ -62,7 +62,7 @@ def parse_args() -> Config:
     parser.add_argument("--workers", type=int, default=1, help="number of data loading workers")
     parser.add_argument("--seed", type=int, default=-1, help="random seed (-1 for no manual seed)")
     parser.add_argument("--model_file", type=str, default=None, help="path of pre-trained model file")
-    parser.add_argument("--train", type=bool, default=True, help="whether to train or test the model")
+    parser.add_argument("--train", type=bool, default=False, help="whether to train or test the model")
     parser.add_argument("--eval_period", type=int, default=10_000, help="eval after each num of iterations")
     parser.add_argument("--run_id", type=str, default=f"run_{int(round(time.time() * 1000))}",
                         help="id for the tensorboard results")

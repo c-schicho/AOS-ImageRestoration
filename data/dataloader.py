@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, List
 
 import torch
 import torchvision.transforms as transforms
@@ -84,7 +84,7 @@ def get_aos_loaders(
         Tuple[DataLoader, DataLoader]: DataLoader for the training set and DataLoader for the testing set.
     """
 
-    transform = __get_default_transform(patch_size)
+    transform = __get_default_train_transform(patch_size)
     dataset = AOSDataset(dataset_folder, transform=transform)
 
     train_loader, test_loader = aos_dataloader(
@@ -105,19 +105,30 @@ def get_single_aos_loader(
         patch_size: int,
         dataset_len: int,
         num_workers: int = 1,
+        focal_planes: List[int] = [10, 50, 150],
+        use_train_transform: bool = True,
         shuffle: bool = True
 ) -> DataLoader:
-    transform = __get_default_transform((patch_size, patch_size))
-    dataset = AOSDataset(dataset_folder, transform=transform, maximum_datasize=dataset_len)
+    transform = (
+        __get_default_train_transform(patch_size, patch_size) if use_train_transform else __get_default_test_transform()
+    )
+    dataset = AOSDataset(dataset_folder, transform=transform, maximum_datasize=dataset_len, focal_stack=focal_planes)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
 
-def __get_default_transform(patch_size: Tuple[int, int]) -> transforms.Compose:
+def __get_default_train_transform(patch_size: Tuple[int, int]) -> transforms.Compose:
     return transforms.Compose([
         transforms.ToPILImage(),
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
         transforms.Lambda(lambda x: x if torch.rand(1).item() > 0.5 else invert_channels(x)),
         transforms.RandomCrop(patch_size, pad_if_needed=True),
+        transforms.ToTensor()
+    ])
+
+
+def __get_default_test_transform() -> transforms.Compose:
+    return transforms.Compose([
+        transforms.ToPILImage(),
         transforms.ToTensor()
     ])
