@@ -34,6 +34,10 @@ class AOSRestoration(nn.Module):
             nn.ReLU(inplace=True)
         )
 
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.out(self.model(x))
 
@@ -50,5 +54,6 @@ class AOSRestoration(nn.Module):
 
         if config.model_file:
             model.load(config.model_file)
+            print('model checkpoint loaded successfully')
 
         return model

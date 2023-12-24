@@ -10,16 +10,12 @@ from tqdm import tqdm
 
 from data import get_single_aos_loader
 from model import AOSRestoration
-from utils import Config
+from utils import Config, get_device
 
 
 def eval(config: Config):
     writer = SummaryWriter(config.result_path)
-    model = (AOSRestoration
-             .get_model_from_config(config)
-             .cuda())
-    model.load(config.model_file)
-    print('model checkpoint loaded successfully')
+    model = AOSRestoration.get_model_from_config(config).to(get_device())
     eval_model(model, config, writer)
 
 
@@ -47,11 +43,12 @@ def eval_model(
     )
 
     model.eval()
+    device = model.device
 
     with torch.no_grad():
         progress_bar = tqdm(data_loader, initial=1, dynamic_ncols=True)
         for inputs, targets in progress_bar:
-            inputs, targets = inputs.cuda(), targets.cuda()
+            inputs, targets = inputs.to(device), targets.to(device)
 
             outputs = model(inputs)
 
@@ -98,6 +95,7 @@ def __calculate_psnr(outputs: torch.Tensor, targets: torch.Tensor, data_range: f
     psnr_value = psnr(outputs, targets, data_range)
 
     if psnr_value == float('inf'):
+        # this happens when the images are exactly the same so the mse is equal to 0
         psnr_value = psnr(torch.add(outputs, eps), targets, data_range)
 
     return psnr_value.item()

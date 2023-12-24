@@ -10,7 +10,7 @@ from tqdm import tqdm
 from data import get_single_aos_loader
 from model import AOSRestoration
 from train.eval import eval_model
-from utils import Config
+from utils import Config, get_device
 
 
 def train(config: Config):
@@ -23,12 +23,9 @@ def train(config: Config):
     avg_loss = 0  # between evaluations
     n_loss = 0
 
+    device = get_device()
     writer = SummaryWriter(config.result_path)
-    model = AOSRestoration.get_model_from_config(config).cuda()
-
-    if config.model_file:
-        model.load(config.model_file)
-        print('model checkpoint loaded successfully')
+    model = AOSRestoration.get_model_from_config(config).to(device)
 
     optimizer = AdamW(model.parameters(), lr=config.lr, weight_decay=1e-4)
     lr_scheduler = CosineAnnealingLR(optimizer, T_max=config.num_iter, eta_min=1e-6)
@@ -59,7 +56,7 @@ def train(config: Config):
             train_loader_iter = iter(train_loader)
             inputs, targets = next(train_loader_iter)
 
-        inputs, targets = inputs.cuda(), targets.cuda()
+        inputs, targets = inputs.to(device), targets.to(device)
 
         model.train()
         outputs = model(inputs)
