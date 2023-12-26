@@ -35,7 +35,7 @@ following:
 ### How to perform training or evaluation
 
 Run `python main.py` in the root directory. An example for starting the training of a new model using the folder
-structure described above would be  `python --train --data_name focalstack-1`. In order to see all the possible
+structure described above would be  `python main.py --train True --data_name focalstack-1`. In order to see all the possible
 configurations run `python main.py -h`
 
 ### How to see the results of the training

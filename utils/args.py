@@ -2,6 +2,7 @@ import argparse
 import os
 import random
 import time
+from enum import Enum
 from typing import List
 
 import numpy as np
@@ -34,6 +35,14 @@ class Config:
         self.eval_period: int = args.eval_period
         self.run_id: str = args.run_id
         self.save_each_model: bool = args.save_each_model
+        self.skip_mode: SkipMode = args.skip_mode
+
+
+class SkipMode(Enum):
+    IDENTITY = 1
+    MEDIAN = 2
+    EQUALIZE = 3
+    LEARNABLE = 4
 
 
 def parse_args() -> Config:
@@ -68,6 +77,8 @@ def parse_args() -> Config:
                         help="id for the tensorboard results")
     parser.add_argument("--save_each_model", type=bool, default=False,
                         help="whether to save each model or only the best")
+    parser.add_argument("--skip_mode", type=int, default=1,
+                        help="mode of skip connection (1) identity, (2) median value, (3) equalize, (4) learnable")
 
     return init_config(parser.parse_args())
 
@@ -78,6 +89,9 @@ def init_config(args) -> Config:
 
     if args.model_file is not None and not os.path.exists(args.model_file):
         raise ValueError(f"model file [{args.model_file}] does not exist")
+
+    if args.skip_mode not in [1, 2, 3, 4]:
+        raise ValueError(f"skip mode [{args.skip_mode}] not supported")
 
     results_path = os.path.join(args.result_path, args.run_id)
     if not os.path.exists(results_path):
@@ -93,5 +107,6 @@ def init_config(args) -> Config:
 
     setattr(args, "result_path", results_path)
     setattr(args, "num_focal_planes", len(args.focal_planes))
+    setattr(args, "skip_mode", SkipMode(args.skip_mode))
 
     return Config(args)

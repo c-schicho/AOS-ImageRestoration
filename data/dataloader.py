@@ -110,7 +110,7 @@ def get_single_aos_loader(
         shuffle: bool = True
 ) -> DataLoader:
     transform = (
-        __get_default_train_transform(patch_size, patch_size) if use_train_transform else __get_default_test_transform()
+        __get_default_train_transform((patch_size, patch_size)) if use_train_transform else __get_default_test_transform()
     )
     dataset = AOSDataset(dataset_folder, transform=transform, maximum_datasize=dataset_len, focal_stack=focal_planes)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
