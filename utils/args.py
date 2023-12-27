@@ -55,7 +55,7 @@ def parse_args() -> Config:
                         help="number of channels for each level")
     parser.add_argument("--expansion_factor", type=float, default=2.66, help="factor of channel expansion for GDFN")
     parser.add_argument("--num_refinement", type=int, default=4, help="number of channels for refinement stage")
-    parser.add_argument("--num_iter", type=int, default=40_000, help="iterations of training")
+    parser.add_argument("--num_iter", type=int, default=50_000, help="iterations of training")
     parser.add_argument("--batch_size", nargs='+', type=int, default=[16, 12, 8, 4, 2, 2],
                         help="batch size of loading images for progressive learning")
     parser.add_argument("--test_batch_size", type=int, default=1, help="batch size for evaluation of the model")
@@ -68,7 +68,7 @@ def parse_args() -> Config:
     parser.add_argument("--seed", type=int, default=-1, help="random seed (-1 for no manual seed)")
     parser.add_argument("--model_file", type=str, default=None, help="path of pre-trained model file")
     parser.add_argument("--train", type=bool, default=False, help="whether to train or test the model")
-    parser.add_argument("--eval_period", type=int, default=10_000, help="eval after each num of iterations")
+    parser.add_argument("--eval_period", type=int, default=500, help="eval after each num of iterations")
     parser.add_argument("--run_id", type=str, default=f"run_{int(round(time.time() * 1000))}",
                         help="id for the tensorboard results")
     parser.add_argument("--save_each_model", type=bool, default=False,

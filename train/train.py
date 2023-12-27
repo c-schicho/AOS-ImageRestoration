@@ -28,9 +28,8 @@ def train(config: Config):
     device = config.torch_device
     writer = SummaryWriter(config.result_path)
     model = AOSRestoration.get_model_from_config(config).to(device)
-    model.train() # Set the model into training mode
 
-    # load the data takes a while thus in the beginning only.
+    # loading the data takes a while thus I move it outside the loop
     train_data, test_data = AOSDataset(config.data_path,
                                        transform = get_default_test_transform(),
                                        focal_stack = config.focal_planes, 
@@ -67,6 +66,7 @@ def train(config: Config):
             inputs, targets = next(train_loader_iter)
 
         # Train the network 
+        model.train() # Set the model into training mode
         inputs, targets = inputs.to(device), targets.to(device)
         outputs = model(inputs)
         loss = l1_loss(outputs, targets)
