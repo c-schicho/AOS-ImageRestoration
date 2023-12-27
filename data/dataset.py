@@ -1,6 +1,7 @@
 import os
-from typing import Dict, List
-
+from typing import Dict, List, Tuple
+import re
+import copy
 import numpy as np
 import torchvision
 import torchvision.transforms as transforms
@@ -61,29 +62,71 @@ class AOSDataset(Dataset):
 
         # Find all unique datapoints.
         unique_ids = sorted({int(parts[-5]) for filename in all_files if
-                             filename.endswith(".png") and (parts := filename.split('_')) and len(parts) >= 2 and parts[
+                             filename.endswith(".png") and (parts := re.split(r'/|_', filename)) and len(parts) >= 2 and parts[
                                  -5].isdigit()})
+        
+        unique_parts = sorted({int(parts[-6]) for filename in all_files if
+                             filename.endswith(".png") and (parts := re.split(r'/|_', filename)) and len(parts) >= 2 and parts[
+                                 -6].isdigit()})
+        
+        done = False
+        for part in unique_parts:
+            for id in unique_ids:
+                label_filename = f"{part}_{id}_GT_pose_0_thermal.png"
+                label_filepath = next((file for file in all_files if label_filename in file), None)
 
-        for id in unique_ids:
-            label_filename = f"0_{id}_GT_pose_0_thermal.png"
-            label_filepath = next((file for file in all_files if label_filename in file), None)
+                feature_filenames = [f"{part}_{id}_integral_focal_{i:03d}_cm.png" for i in self.focal_stack]
+                feature_filepaths = [next((file for file in all_files if feature_filename in file), None) for
+                                    feature_filename in feature_filenames]
 
-            feature_filenames = [f"0_{id}_integral_focal_{i:03d}_cm.png" for i in self.focal_stack]
-            feature_filepaths = [next((file for file in all_files if feature_filename in file), None) for
-                                 feature_filename in feature_filenames]
+                # Check if both label and all training data files exist
+                if label_filepath in all_files and all(training_file in all_files for training_file in feature_filepaths):
+                    data.append({
+                        'label': label_filepath,
+                        'training_data': feature_filepaths,
+                        'part' : part,
+                        'id': id
+                    })
 
-            # Check if both label and all training data files exist
-            if label_filepath in all_files and all(training_file in all_files for training_file in feature_filepaths):
-                data.append({
-                    'label': label_filepath,
-                    'training_data': feature_filepaths
-                })
-
-            if self.maximum_datasize is not None and len(data) == self.maximum_datasize:
+                if self.maximum_datasize is not None and len(data) == self.maximum_datasize:
+                    done = True
+                    break
+            if done:
                 break
-
+            
         return data
+    
+    def repeateable_split(self, inverse_test_ratio: int) -> Tuple[Dataset, Dataset]:
+        """
+        Splits the dataset into training and test sets based on the provided inverse test ratio.
 
+        Parameters:
+            - inverse_test_ratio (int): The inverse of the desired test set ratio. 
+            For example, if inverse_test_ratio is 5, it means 1 out of every 5 samples 
+            will be included in the test set.
+
+        Returns:
+            tuple(Dataset, Dataset): A tuple containing two dataset instances, 
+            where the first is the training set and the second is the test set.
+        """
+
+        #test_data_indices = [i for i, data in enumerate(self.data) if data['id'] % inverse_test_ratio == 0]
+        #train_data_indices = [i for i, data in enumerate(self.data) if data['id'] % inverse_test_ratio != 0]
+
+        test_data = [data for data in self.data if data['id'] % inverse_test_ratio == 0]
+        train_data = [data for data in self.data if data['id'] % inverse_test_ratio != 0]
+
+        #train = Subset(self, train_data_indices)    
+        #test = Subset(self, test_data_indices)
+
+        train = copy.copy(self)
+        train.data = train_data
+
+        test = copy.copy(self)
+        test.data = test_data
+
+        return train, test
+    
     def __len__(self) -> int:
         """
         Get the length of the dataset.
@@ -132,3 +175,4 @@ class AOSDataset(Dataset):
         features = images[:-1]
 
         return features, labels
+

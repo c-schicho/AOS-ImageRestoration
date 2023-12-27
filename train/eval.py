@@ -1,4 +1,3 @@
-import os
 from typing import Tuple, Union
 
 import torch
@@ -7,20 +6,22 @@ from torch.nn.functional import mse_loss
 from torch.utils.tensorboard import SummaryWriter
 from torcheval.metrics.functional import peak_signal_noise_ratio as psnr
 from tqdm import tqdm
+from torch.utils.data import DataLoader
 
-from data import get_single_aos_loader
+from data.dataset import AOSDataset
 from model import AOSRestoration
-from utils import Config, get_device
+from utils import Config
 
 
 def eval(config: Config):
     writer = SummaryWriter(config.result_path)
-    model = AOSRestoration.get_model_from_config(config).to(get_device())
+    model = AOSRestoration.get_model_from_config(config).to(config.torch_device)
     eval_model(model, config, writer)
 
 
 def eval_model(
         model: AOSRestoration,
+        data: AOSDataset,
         config: Config,
         writer: Union[SummaryWriter, None] = None,
         step: int = 0,
@@ -30,24 +31,28 @@ def eval_model(
     total_ssim = 0.0
     total_mse = 0.0
     n_iter = 0
-
-    test_data_path = os.path.join(config.data_path, config.data_name, "test")
-    data_loader = get_single_aos_loader(
-        test_data_path,
-        config.test_batch_size,
-        512,
-        n_images,
-        config.workers,
-        config.focal_planes,
-        False
-    )
+    
+    data_loader = DataLoader(data,
+                        batch_size=1,
+                        num_workers=config.workers, 
+                        shuffle=False)
 
     model.eval()
     device = model.device
 
     with torch.no_grad():
-        progress_bar = tqdm(data_loader, initial=1, dynamic_ncols=True)
-        for inputs, targets in progress_bar:
+        progress_bar = tqdm(range(1, n_images + 1), initial=1, dynamic_ncols=True)
+        iterator = iter(data_loader)
+        for _ in progress_bar:
+            try:
+                inputs, targets = next(iterator)
+            except StopIteration:
+                # needed if there are not enough datapoints
+                # here we computed one epoc
+                epoc =+ 1
+                iterator = iter(data_loader)
+                inputs, targets = next(iterator)
+
             inputs, targets = inputs.to(device), targets.to(device)
 
             outputs = model(inputs)

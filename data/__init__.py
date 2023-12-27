@@ -1,2 +1,2 @@
-from data.dataloader import get_aos_loaders, get_single_aos_loader
 from data.dataset import AOSDataset
+from data.dataloader import get_default_test_transform, get_default_train_transform

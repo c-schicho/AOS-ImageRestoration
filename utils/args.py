@@ -7,6 +7,7 @@ from typing import List
 import numpy as np
 import torch
 from torch.backends import cudnn
+from utils.device import init_device
 
 
 class Config:
@@ -34,6 +35,10 @@ class Config:
         self.eval_period: int = args.eval_period
         self.run_id: str = args.run_id
         self.save_each_model: bool = args.save_each_model
+        self.torch_device: torch.device = init_device(args.torch_device)
+        self.test_ratio: float = args.test_ratio
+        self.num_test_iter: int = args.num_test_iter
+        self.maximum_datasize: int = 200
 
 
 def parse_args() -> Config:
@@ -50,16 +55,16 @@ def parse_args() -> Config:
                         help="number of channels for each level")
     parser.add_argument("--expansion_factor", type=float, default=2.66, help="factor of channel expansion for GDFN")
     parser.add_argument("--num_refinement", type=int, default=4, help="number of channels for refinement stage")
-    parser.add_argument("--num_iter", type=int, default=200_000, help="iterations of training")
+    parser.add_argument("--num_iter", type=int, default=40_000, help="iterations of training")
     parser.add_argument("--batch_size", nargs='+', type=int, default=[16, 12, 8, 4, 2, 2],
                         help="batch size of loading images for progressive learning")
     parser.add_argument("--test_batch_size", type=int, default=1, help="batch size for evaluation of the model")
     parser.add_argument("--patch_size", nargs='+', type=int, default=[48, 56, 72, 96, 120, 144],
                         help="patch size of each image for progressive learning")
     parser.add_argument("--lr", type=float, default=0.0003, help="initial learning rate")
-    parser.add_argument("--milestones", nargs='+', type=int, default=[60_000, 90_000, 120_000, 150_000, 180_000],
-                        help="when to change patch size and batch size")
-    parser.add_argument("--workers", type=int, default=1, help="number of data loading workers")
+    parser.add_argument("--milestones", nargs='+', type=int, default=[10_000, 20_000, 30_000, 40_000, 50_000], 
+                        help="number of epocs to patch size and batch size change")
+    parser.add_argument("--workers", type=int, default=0, help="number of data loading workers")
     parser.add_argument("--seed", type=int, default=-1, help="random seed (-1 for no manual seed)")
     parser.add_argument("--model_file", type=str, default=None, help="path of pre-trained model file")
     parser.add_argument("--train", type=bool, default=False, help="whether to train or test the model")
@@ -68,6 +73,13 @@ def parse_args() -> Config:
                         help="id for the tensorboard results")
     parser.add_argument("--save_each_model", type=bool, default=False,
                         help="whether to save each model or only the best")
+    parser.add_argument("--torch_device", type=str, default= 'cuda' if torch.cuda.is_available() else 'cpu',
+                        help="specify which torch device should be used.")
+    parser.add_argument("--test_ratio", type=float, default=0.05,
+                        help="Specify the dataset ratio that should be held aside for testing.")
+    parser.add_argument("--num_test_iter", type=int, default=100, help="iterations of testing")
+    parser.add_argument("--maximum_datasize", type=int, default=None, help="limits the dataset size")
+    
 
     return init_config(parser.parse_args())
 

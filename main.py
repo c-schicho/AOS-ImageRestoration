@@ -1,5 +1,10 @@
 from train import train, eval
 from utils import parse_args
+import warnings
+
+# Suppress the specific warning about 'aten::sgn.out'
+warnings.filterwarnings("ignore", message="The operator 'aten::sgn.out' is not currently supported on the MPS backend*")
+
 
 if __name__ == "__main__":
     config = parse_args()
