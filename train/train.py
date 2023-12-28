@@ -96,7 +96,8 @@ def train(config: Config):
                     best_eval_ssim = eval_ssim
 
                 current_time_in_millis = int(round(time.time() * 1000))
-                model_path = os.path.join(config.result_path, f"model_{n_iter}_{current_time_in_millis}.pt")
+                #model_path = os.path.join(config.result_path, f"model_{n_iter}_{current_time_in_millis}.pt")
+                model_path = f"best_model.pt"
                 model.save(model_path)
 
             avg_loss = 0

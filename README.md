@@ -42,7 +42,7 @@ configurations run `python main.py -h`
 
 Run `tensorboard --logdir result` in the root directory.
 
-### Performace on mac M1 16GB RAM for comparison
+### Performace on mac M1 pro 16GB RAM for comparison
 2.0s/it 8.0batch/s RAM: ???    --- python main.py --train true --data_name focalstack-1 --workers 0 
 1.6it/s 3.2batch/s RAM: ???    --- python main.py --train true --data_name focalstack-1 --batch_size 2 --workers 0 
 2.0s/it 8.0batch/s RAM: ???    --- python main.py --train true --data_name focalstack-1 --batch_size 16 --workers 0
