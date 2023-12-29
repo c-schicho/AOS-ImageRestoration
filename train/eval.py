@@ -76,7 +76,7 @@ def eval_model(
         writer.add_scalars(
             main_tag="eval_metrics",
             tag_scalar_dict={"psnr": avg_psnr, "ssim": avg_ssim, "mse": avg_mse},
-            global_step=n_iter
+            global_step=step
         )
 
     return avg_psnr, avg_ssim, avg_mse
