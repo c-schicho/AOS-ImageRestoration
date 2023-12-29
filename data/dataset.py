@@ -1,5 +1,7 @@
 import os
+import glob
 from typing import Dict, List
+from itertools import groupby
 
 import numpy as np
 import torchvision
@@ -52,32 +54,30 @@ class AOSDataset(Dataset):
         Returns:
             List[Dict[str, List[str]]]: List of dictionaries containing 'label' and 'training_data' paths.
         """
+        all_images = glob.glob(os.path.join(self.folder, "**", "*.png"), recursive=True)
+        all_images.sort(key=self.__get_unique_id)
+        grouped_images = {
+            key: list(values) for key, values in groupby(all_images, lambda path: self.__get_unique_id(path))
+        }
+
         data = []
+        focal_plane_search_strings = [f"{focal_plane:03d}" for focal_plane in self.focal_stack]
 
-        # Collect all file paths in the root folder and its sub-folders
-        all_files = []
-        for root, dirs, files in os.walk(self.folder):
-            all_files.extend([os.path.join(root, file) for file in files])
+        for key, files in grouped_images.items():
+            ground_truth_paths = list(filter(lambda file: 'GT' in file, files))
+            input_paths = list(filter(lambda file: file.split('_')[-2] in focal_plane_search_strings, files))
 
-        # Find all unique datapoints.
-        unique_ids = sorted({int(parts[-5]) for filename in all_files if
-                             filename.endswith(".png") and (parts := filename.split('_')) and len(parts) >= 2 and parts[
-                                 -5].isdigit()})
+            if len(ground_truth_paths) != 1 or len(input_paths) != len(self.focal_stack):
+                continue
 
-        for id in unique_ids:
-            label_filename = f"0_{id}_GT_pose_0_thermal.png"
-            label_filepath = next((file for file in all_files if label_filename in file), None)
+            input_paths.sort(key=lambda path: int(path.split('_')[-2]))
 
-            feature_filenames = [f"0_{id}_integral_focal_{i:03d}_cm.png" for i in self.focal_stack]
-            feature_filepaths = [next((file for file in all_files if feature_filename in file), None) for
-                                 feature_filename in feature_filenames]
-
-            # Check if both label and all training data files exist
-            if label_filepath in all_files and all(training_file in all_files for training_file in feature_filepaths):
-                data.append({
-                    'label': label_filepath,
-                    'training_data': feature_filepaths
-                })
+            data.append(
+                {
+                    'ground_truth_path': ground_truth_paths[0],
+                    'input_paths': input_paths
+                }
+            )
 
             if self.maximum_datasize is not None and len(data) == self.maximum_datasize:
                 break
@@ -105,8 +105,8 @@ class AOSDataset(Dataset):
         """
         # Fetch file information from the data
         data_dict = self.data[idx]
-        feature_filenames = data_dict['training_data']
-        label_filename = data_dict['label']
+        feature_filenames = data_dict['input_paths']
+        label_filename = data_dict['ground_truth_path']
 
         # Load images and labels dynamically
         labels = io.imread(label_filename)
@@ -133,5 +133,6 @@ class AOSDataset(Dataset):
 
         return features, labels
 
-
-
+    @staticmethod
+    def __get_unique_id(path: str):
+        return ''.join(os.path.split(path)[-1].split('_')[:2])
