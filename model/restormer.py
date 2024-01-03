@@ -154,7 +154,7 @@ class Restormer(nn.Module):
                 .repeat(1, 1, patch_size, patch_size)
             )
         elif self.skip_mode == SkipMode.EQUALIZE:
-            skip = equalize(x)
+            skip = equalize((x * 255).to(torch.uint8)).to(torch.float32) / 255
         elif self.skip_mode == SkipMode.LEARNABLE:
             skip = self.skip_weight(fr) * x
         else:
