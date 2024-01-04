@@ -60,14 +60,14 @@ def plot_model_comparison(results_df: pd.DataFrame, fig_size: Tuple[int, int] = 
         ax.bar_label(rects, padding=3)
         multiplier += 1
 
-    ax.set_ylabel('Value')
-    ax.set_xlabel('Metric')
     ax.set_title('Model Comparison by Metrics')
+    ax.set_xlabel('Metric')
     ax.set_xticks(x + (width * ((len(results_df) - 1) / 2)))
     ax.set_xticklabels(["MSE", "PSNR", "SSIM"])
     ax.legend(loc='upper left', ncol=3)
     ax.set_yscale('log')
-    ax.set_ylim(10 ** (-5), results_df['PSNR'].max() + 1000)
+    ax.set_ylim(10 ** (-5), results_df['PSNR'].max() + 1_000)
+    plt.gca().axes.get_yaxis().set_visible(False)
     plt.show()
 
 
