@@ -14,6 +14,7 @@ class AosRestorationConfig:
         self.num_refinement = config.num_refinement
         self.expansion_factor = config.expansion_factor
         self.num_focal_planes = config.num_focal_planes
+        self.skip_mode = config.skip_mode
 
 
 class AOSRestoration(nn.Module):
@@ -26,7 +27,8 @@ class AOSRestoration(nn.Module):
             config.channels,
             config.num_refinement,
             config.expansion_factor,
-            config.num_focal_planes
+            config.num_focal_planes,
+            config.skip_mode
         )
         self.out = nn.Sequential(
             nn.ELU(inplace=True),
