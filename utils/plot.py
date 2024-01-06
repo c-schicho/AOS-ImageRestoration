@@ -1,3 +1,8 @@
+from typing import Tuple
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import torch
 import torchvision.transforms as transforms
 from IPython.display import display
@@ -35,6 +40,35 @@ def plot_dataloader(dataloader: DataLoader, n_images: int = 1):
         im.paste(x_im, (y_size, 0))
         im.paste(x_re, (0, 0))
         display(im, metadata={'width': '100%'})
+
+
+def plot_model_comparison(results_df: pd.DataFrame, fig_size: Tuple[int, int] = (15, 7)):
+    """
+    expects a dataframe with the following columns: [run_id, MSE, PSNR, SSIM]
+    """
+
+    x = np.arange(3)  # the label locations
+    width = 0.8 / len(results_df)  # the width of the bars
+    multiplier = 0
+    fig, ax = plt.subplots(figsize=fig_size)
+    for index, row in results_df.iterrows():
+        a = [np.round(row['MSE'], 5), np.round(row['PSNR'], 2), np.round(row['SSIM'], 3)]
+        measurement = pd.Series(a)
+        attribute = row['run_id']
+        offset = width * multiplier
+        rects = ax.bar(x + offset, measurement, width, label=attribute)
+        ax.bar_label(rects, padding=3)
+        multiplier += 1
+
+    ax.set_title('Model Comparison by Metrics')
+    ax.set_xlabel('Metric')
+    ax.set_xticks(x + (width * ((len(results_df) - 1) / 2)))
+    ax.set_xticklabels(["MSE", "PSNR", "SSIM"])
+    ax.legend(loc='upper left', ncol=3)
+    ax.set_yscale('log')
+    ax.set_ylim(10 ** (-5), results_df['PSNR'].max() + 1_000)
+    plt.gca().axes.get_yaxis().set_visible(False)
+    plt.show()
 
 
 def __data_to_image(*data: torch.Tensor) -> Image:
