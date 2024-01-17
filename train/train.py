@@ -64,10 +64,10 @@ def train(config: Config):
         outputs = model(inputs)
 
         loss = __weighted_l1_loss(outputs, targets, masks)
-        norm_loss = loss / 16
+        norm_loss = loss / GRADIENT_AGGREGATION
         norm_loss.backward()
 
-        if n_iter % 16 == 0 or n_iter == config.num_iter:
+        if n_iter % GRADIENT_AGGREGATION == 0 or n_iter == config.num_iter:
             optimizer.step()
             optimizer.zero_grad()
             lr_scheduler.step()
