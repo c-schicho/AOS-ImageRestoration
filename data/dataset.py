@@ -157,10 +157,14 @@ class AOSDataset(Dataset):
         mask = np.ones_like(ground_truth) * 255
         cv2.drawContours(image=mask, contours=contours, contourIdx=-1, color=(0, 1, 0), thickness=cv2.FILLED)
 
+        # a person takes usually 2-5% of the image
         if mask.mean() > 30:
+            # if the mean is too high, we might have found the inverse mask
             mask = 255 - mask
 
         if mask.mean() > 30:
+            # if both mask versions have a high mean, we also consider environmental objects / structures
+            # therefore, we fall back to an unweighted mask.
             mask = mask * 0
 
         return cv2.dilate(mask, np.ones((5, 5)))
