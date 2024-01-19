@@ -57,6 +57,14 @@ Ensure, that the images follow this naming convention:
 
 
 
+### MODEL WEIGHTS ###
+The model weights can be downloaded from the following link:
+https://drive.google.com/drive/folders/1-MrEd9BurmYb-QWLmZd-muUwH6NDkgYB
+
+Store the model weights with the name model.pt in the model folder shown in the directory structure above.
+
+
+
 ### DEPENDENCIES ###
 To create an environment with all dependencies run the following command in the terminal:
 

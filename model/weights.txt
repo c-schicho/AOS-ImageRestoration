@@ -1,0 +1,4 @@
+The model weights can be downloaded from the following link:
+https://drive.google.com/drive/folders/1-MrEd9BurmYb-QWLmZd-muUwH6NDkgYB
+
+Check the README.txt for further instructions.
