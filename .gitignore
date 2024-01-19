@@ -3,3 +3,6 @@ LFR
 data/aos-data
 result
 *.pyc
+.DS_Store
+data/train
+data/test
