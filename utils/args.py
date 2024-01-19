@@ -86,7 +86,7 @@ def init_config(args) -> Config:
     if not os.path.exists(args.data_path):
         raise ValueError(f"data path [{args.data_path}] does not exist")
 
-    if args.train and args.model_file is None:
+    if not args.train and args.model_file is None:
         raise ValueError('no model file provided for testing')
 
     if args.model_file is not None and not os.path.exists(args.model_file):
