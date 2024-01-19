@@ -13,7 +13,7 @@ following:
 |-- <project root>     
     |-- data
         |-- aos-data
-            |--- focalstack-1
+            |--- focalstack-1 [optional]
                 |-- train
                     <1st focal plane image>.png
                     ...

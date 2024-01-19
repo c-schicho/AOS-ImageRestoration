@@ -1,7 +1,6 @@
 import argparse
 import os
 import random
-import time
 from enum import Enum
 from typing import List
 
@@ -47,8 +46,8 @@ class SkipMode(Enum):
 
 def parse_args() -> Config:
     parser = argparse.ArgumentParser(description="AOS image restoration using Restormer")
-    parser.add_argument("--data_name", type=str)
-    parser.add_argument("--data_path", type=str, default="data/aos-data")
+    parser.add_argument("--data_name", type=str, default="")
+    parser.add_argument("--data_path", type=str, default="data")
     parser.add_argument("--result_path", type=str, default="result")
     parser.add_argument("--num_blocks", nargs='+', type=int, default=[4, 6, 6, 8],
                         help="number of transformer blocks for each level")
@@ -74,11 +73,10 @@ def parse_args() -> Config:
     parser.add_argument("--model_file", type=str, default=None, help="path of pre-trained model file")
     parser.add_argument("--train", type=bool, default=False, help="whether to train or test the model")
     parser.add_argument("--eval_period", type=int, default=10_000, help="eval after each num of iterations")
-    parser.add_argument("--run_id", type=str, default=f"run_{int(round(time.time() * 1000))}",
-                        help="id for the tensorboard results")
+    parser.add_argument("--run_id", type=str, default="D9_submission", help="id for the tensorboard results")
     parser.add_argument("--save_each_model", type=bool, default=False,
                         help="whether to save each model or only the best")
-    parser.add_argument("--skip_mode", type=int, default=1,
+    parser.add_argument("--skip_mode", type=int, default=4,
                         help="mode of skip connection (1) identity, (2) median value, (3) equalize, (4) learnable")
 
     return init_config(parser.parse_args())
@@ -87,6 +85,9 @@ def parse_args() -> Config:
 def init_config(args) -> Config:
     if not os.path.exists(args.data_path):
         raise ValueError(f"data path [{args.data_path}] does not exist")
+
+    if args.train and args.model_file is None:
+        raise ValueError('no model file provided for testing')
 
     if args.model_file is not None and not os.path.exists(args.model_file):
         raise ValueError(f"model file [{args.model_file}] does not exist")

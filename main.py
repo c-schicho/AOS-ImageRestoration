@@ -7,7 +7,4 @@ if __name__ == "__main__":
     if config.train:
         train(config)
     else:
-        if config.model_file is None:
-            raise ValueError("no model file provided for testing")
-
         eval(config)

@@ -14,6 +14,70 @@ from torch.utils.data import Dataset
 from torchvision.transforms.functional import crop, hflip, vflip
 
 
+class AOSInferenceDataset(Dataset):
+
+    def __init__(self, path: str, focal_stack: list[int] = [10, 50, 150]):
+        """
+        Args:
+            path (str): Path to the folder containing the images.
+            focal_stack (list[int], optional): List of focal planes to use. Defaults to [10, 50, 150].
+        """
+        self.path = path
+        self.focal_stack = focal_stack
+        self.data = self._load_data()
+        self.transform = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.ToTensor(),
+        ])
+
+    def _load_data(self) -> List[List[str]]:
+        all_images = glob.glob(os.path.join(self.path, "**", "*.png"), recursive=True)
+        all_images.sort(key=self.__get_unique_id)
+        grouped_images = {
+            key: list(values) for key, values in groupby(all_images, lambda path: self.__get_unique_id(path))
+        }
+
+        data = []
+        focal_plane_search_strings = [f"{focal_plane:03d}" for focal_plane in self.focal_stack]
+
+        for key, files in grouped_images.items():
+            input_paths = list(filter(lambda file: file.split('_')[-2] in focal_plane_search_strings, files))
+
+            if len(input_paths) != len(self.focal_stack):
+                print("Warning: Incomplete focal stack found. Skipping image.")
+                continue
+
+            input_paths.sort(key=lambda path: int(path.split('_')[-2]))
+            data.append(input_paths)
+
+        return data
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def __getitem__(self, idx: int) -> torch.Tensor:
+        feature_filenames = self.data[idx]
+        image_shape = io.imread(feature_filenames[0]).shape
+        h, w = image_shape[0], image_shape[1]
+        features = np.zeros((h, w, len(feature_filenames)))
+
+        for i, file in enumerate(feature_filenames):
+            image = io.imread(os.path.join(file))
+            if len(image.shape) == 3 and image.shape[2] > 1:
+                features[:, :, i] = image[:, :, 0]
+            elif len(image.shape) == 2:
+                features[:, :, i] = image
+            else:
+                print("Warning: Image has an unexpected shape. Skipping image.")
+
+        features = self.transform(features.astype('uint8'))
+        return features
+
+    @staticmethod
+    def __get_unique_id(path: str):
+        return ''.join(os.path.split(path)[-1].split('_')[:2])
+
+
 class AOSDataset(Dataset):
 
     def __init__(
@@ -27,7 +91,7 @@ class AOSDataset(Dataset):
     ):
         """
         Args:
-            folder (str): List of folder paths containing data.
+            folder (str): Path to the folder containing the images.
             relative_path (bool, optional): Whether input folders are specified as relative paths. Defaults to True.
             maximum_datasize (int, optional): Maximum number of samples to load. Defaults to None, which loads all images,
             focal_stack (list[int], optional): List of focal planes to use. Defaults to [10, 50, 150].

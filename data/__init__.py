@@ -1,2 +1,2 @@
 from data.dataloader import get_aos_loader
-from data.dataset import AOSDataset
+from data.dataset import AOSDataset, AOSInferenceDataset
