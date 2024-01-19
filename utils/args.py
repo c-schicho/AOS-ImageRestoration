@@ -47,7 +47,7 @@ class SkipMode(Enum):
 def parse_args() -> Config:
     parser = argparse.ArgumentParser(description="AOS image restoration using Restormer")
     parser.add_argument("--data_name", type=str, default="")
-    parser.add_argument("--data_path", type=str, default="data")
+    parser.add_argument("--data_path", type=str, default="data/aos-data/")
     parser.add_argument("--result_path", type=str, default="result")
     parser.add_argument("--num_blocks", nargs='+', type=int, default=[4, 6, 6, 8],
                         help="number of transformer blocks for each level")
