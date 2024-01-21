@@ -8,7 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torcheval.metrics.functional import peak_signal_noise_ratio as psnr
 from tqdm import tqdm
 
-from data import get_single_aos_loader
+from data import get_aos_loader
 from model import AOSRestoration
 from utils import Config, get_device
 
@@ -32,13 +32,14 @@ def eval_model(
     n_iter = 0
 
     test_data_path = os.path.join(config.data_path, config.data_name, "test")
-    data_loader = get_single_aos_loader(
+    data_loader = get_aos_loader(
         test_data_path,
         config.test_batch_size,
         512,
         n_images,
         config.workers,
         config.focal_planes,
+        False,
         False
     )
 
@@ -47,7 +48,7 @@ def eval_model(
 
     with torch.no_grad():
         progress_bar = tqdm(data_loader, initial=1, dynamic_ncols=True)
-        for inputs, targets in progress_bar:
+        for inputs, targets, _ in progress_bar:
             inputs, targets = inputs.to(device), targets.to(device)
 
             outputs = model(inputs)

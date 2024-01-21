@@ -1,51 +1,48 @@
-import os
 import glob
-from typing import Dict, List
+import os
+import random
 from itertools import groupby
+from typing import Dict, List, Union
 
+import cv2
 import numpy as np
-import torchvision
+import torch
 import torchvision.transforms as transforms
+from PIL import Image
 from skimage import io
 from torch.utils.data import Dataset
+from torchvision.transforms.functional import crop, hflip, vflip
 
 
 class AOSDataset(Dataset):
-    """
-    A custom dataset class for handling AOS data.
-
-    Args:
-        folder (str): List of folder paths containing data.
-        transform (torchvision.transforms.Compose, optional): Transform for input data. Defaults to transforms.Compose([transforms.ToTensor()]).
-        relative_path (bool, optional): Whether input folders are specified as relative paths. Defaults to True.
-        maximum_datasize (int, optional): Maximum number of samples to load. Defaults to None.
-    """
 
     def __init__(
             self,
             folder: str,
-            transform: torchvision.transforms.Compose = transforms.Compose([transforms.ToTensor()]),
             relative_path: bool = True,
             maximum_datasize: int = None,
-            focal_stack: list[int] = [10, 50, 150]
+            focal_stack: list[int] = [10, 50, 150],
+            patch_size: Union[tuple[int, int], None] = None,
+            use_train_transform: bool = True
     ):
         """
-        Initializes the AOSDataset.
-
         Args:
             folder (str): List of folder paths containing data.
-            transform (torchvision.transforms.Compose, optional): Transform for input data. Defaults to transforms.Compose([transforms.ToTensor()]).
             relative_path (bool, optional): Whether input folders are specified as relative paths. Defaults to True.
-            maximum_datasize (int, optional): Maximum number of samples to load. Defaults to None, which loads all images
+            maximum_datasize (int, optional): Maximum number of samples to load. Defaults to None, which loads all images,
+            focal_stack (list[int], optional): List of focal planes to use. Defaults to [10, 50, 150].
+            patch_size (Union[tuple[int, int], None], optional): Size of the patches to extract from the images. Defaults to None.
+            use_train_transform (bool, optional): Whether to use the train transform. Defaults to True.
         """
         if maximum_datasize is not None and maximum_datasize <= 0:
             raise ValueError("maximum_datasize must be greater than 0 or None")
 
         self.folder = os.path.join(os.getcwd(), folder) if relative_path else folder
         self.maximum_datasize = maximum_datasize
-        self.transform = transform
         self.focal_stack = focal_stack
         self.data = self._load_data()
+        self.patch_size = patch_size
+        self.use_train_transform = use_train_transform
 
     def _load_data(self) -> List[Dict[str, List[str]]]:
         """
@@ -93,7 +90,7 @@ class AOSDataset(Dataset):
         """
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Get a sample from the dataset.
 
@@ -101,37 +98,76 @@ class AOSDataset(Dataset):
             idx (int): Index of the sample.
 
         Returns:
-            tuple[np.ndarray, np.ndarray]: Tuple containing input features and labels.
+            tuple[np.ndarray, np.ndarray]: Tuple containing input features and ground_truth.
         """
         # Fetch file information from the data
         data_dict = self.data[idx]
-        feature_filenames = data_dict['input_paths']
         label_filename = data_dict['ground_truth_path']
+        ground_truth = io.imread(label_filename)
 
-        # Load images and labels dynamically
-        labels = io.imread(label_filename)
-
-        # Load the feature images
-        features = np.zeros((labels.shape[0], labels.shape[1], len(feature_filenames)))
+        feature_filenames = data_dict['input_paths']
+        features = np.zeros((ground_truth.shape[0], ground_truth.shape[1], len(feature_filenames)))
 
         for i, file in enumerate(feature_filenames):
             image = io.imread(os.path.join(file))
-
             # In this dataset each image strangly has the same value in all three 
             # channels -> I only use the first entry and do not check for the others
             # for execution time reasons.
             features[:, :, i] = image[:, :, 0]
 
-        # Apply the same transform to both features and labels
-        images = np.concatenate((features, labels[:, :, np.newaxis]), axis=-1)
+        images = transforms.ToPILImage()(
+            np.concatenate((features, ground_truth[:, :, np.newaxis]), axis=-1).astype('uint8')
+        )
+        if self.use_train_transform:
+            mask = transforms.ToPILImage()(self.__get_loss_weight_mask(ground_truth))
+            images, mask = self.__random_flip(images, mask)
+        else:
+            mask = transforms.ToPILImage()(np.zeros_like(ground_truth))
 
-        images = images.astype('uint8')
-        images = self.transform(images)
+        if self.patch_size is not None:
+            i, j, h, w = transforms.RandomCrop.get_params(images, output_size=self.patch_size)
+            images = crop(images, i, j, h, w)
+            mask = crop(mask, i, j, h, w)
 
-        labels = images[-1][None, ...]
+        images = transforms.ToTensor()(images)
+        mask = transforms.ToTensor()(mask)
+
         features = images[:-1]
+        ground_truth = images[-1][None, ...]
 
-        return features, labels
+        return features, ground_truth, mask
+
+    @staticmethod
+    def __random_flip(images: Image, mask: Image) -> tuple[Image, Image]:
+        if random.random() > 0.5:
+            images = hflip(images)
+            mask = hflip(mask)
+
+        if random.random() > 0.5:
+            images = vflip(images)
+            mask = vflip(mask)
+
+        return images, mask
+
+    @staticmethod
+    def __get_loss_weight_mask(ground_truth: np.ndarray) -> np.ndarray:
+        ground_truth = cv2.medianBlur(ground_truth, 5)
+        _, thresh = cv2.threshold(ground_truth, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+        mask = np.ones_like(ground_truth) * 255
+        cv2.drawContours(image=mask, contours=contours, contourIdx=-1, color=(0, 1, 0), thickness=cv2.FILLED)
+
+        # a person takes usually 2-5% of the image
+        if mask.mean() > 30:
+            # if the mean is too high, we might have found the inverse mask
+            mask = 255 - mask
+
+        if mask.mean() > 30:
+            # if both mask versions have a high mean, we also consider environmental objects / structures
+            # therefore, we fall back to an unweighted mask.
+            mask = mask * 0
+
+        return cv2.dilate(mask, np.ones((5, 5)))
 
     @staticmethod
     def __get_unique_id(path: str):
