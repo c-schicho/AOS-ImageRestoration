@@ -53,9 +53,8 @@ def eval_model(
 
             outputs = model(inputs)
 
-            data_range = __calculate_data_range(outputs)
-            total_psnr += __calculate_psnr(outputs, targets, data_range)
-            total_ssim += ssim(outputs, targets, data_range)
+            total_psnr += __calculate_psnr(outputs, targets, 1.0)
+            total_ssim += ssim(outputs, targets, 1.0)
             total_mse += mse_loss(outputs, targets)
 
             n_iter += 1
@@ -81,15 +80,6 @@ def eval_model(
         )
 
     return avg_psnr, avg_ssim, avg_mse
-
-
-def __calculate_data_range(outputs: torch.Tensor, eps: float = 10e-2) -> float:
-    data_range = (torch.max(outputs) - torch.min(outputs)).item()
-
-    if data_range == 0:
-        data_range = eps
-
-    return data_range
 
 
 def __calculate_psnr(outputs: torch.Tensor, targets: torch.Tensor, data_range: float, eps: float = 10e-2) -> float:
