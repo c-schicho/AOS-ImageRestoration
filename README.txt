@@ -70,7 +70,11 @@ To create an environment with all dependencies run the following command in the 
 
 conda env create --file=environment.yml
 
-** Important ** The following command assumes, that the conda package manager is installed on your system and that your
+If you are using Windows as your operating system, run the following command in the terminal instead:
+
+conda env create --file=environment_windows.yml
+
+** Important ** The following commands assume, that the conda package manager is installed on your system and that your
  current working directory is the code directory.
 
 
