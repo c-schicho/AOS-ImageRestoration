@@ -1,4 +1,4 @@
-from train import train, eval
+from train import train, test
 from utils import parse_args
 
 if __name__ == "__main__":
@@ -7,4 +7,4 @@ if __name__ == "__main__":
     if config.train:
         train(config)
     else:
-        eval(config)
+        test(config)

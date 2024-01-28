@@ -1,2 +1,2 @@
-from train.eval import eval
+from train.eval import test
 from train.train import train

@@ -1,1 +1,1 @@
-from inference.inference import generate_images
+from inference.inference import generate_images, generate_images_with_evaluation

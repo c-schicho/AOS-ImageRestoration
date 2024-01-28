@@ -4,6 +4,7 @@ from typing import Tuple, Union
 import torch
 from pytorch_msssim import ssim
 from torch.nn.functional import mse_loss
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torcheval.metrics.functional import peak_signal_noise_ratio as psnr
 from tqdm import tqdm
@@ -13,24 +14,41 @@ from model import AOSRestoration
 from utils import Config, get_device
 
 
-def eval(config: Config):
-    writer = SummaryWriter(config.result_path)
-    model = AOSRestoration.get_model_from_config(config).to(get_device())
-    eval_model(model, config, writer)
-
-
-def eval_model(
+def validate_model(
         model: AOSRestoration,
         config: Config,
         writer: Union[SummaryWriter, None] = None,
         step: int = 0,
         n_images: Union[int, None] = None
 ) -> Tuple[float, float, float]:
-    total_psnr = 0.0
-    total_ssim = 0.0
-    total_mse = 0.0
-    n_iter = 0
+    val_data_path = os.path.join(config.data_path, config.data_name, "validation")
+    data_loader = get_aos_loader(
+        val_data_path,
+        config.test_batch_size,
+        512,
+        n_images,
+        config.workers,
+        config.focal_planes,
+        False,
+        False
+    )
 
+    return __eval_model(model, data_loader, writer, step)
+
+
+def test(config: Config):
+    writer = SummaryWriter(config.result_path)
+    model = AOSRestoration.get_model_from_config(config).to(get_device())
+    test_model(model, config, writer)
+
+
+def test_model(
+        model: AOSRestoration,
+        config: Config,
+        writer: Union[SummaryWriter, None] = None,
+        step: int = 0,
+        n_images: Union[int, None] = None
+) -> Tuple[float, float, float]:
     test_data_path = os.path.join(config.data_path, config.data_name, "test")
     data_loader = get_aos_loader(
         test_data_path,
@@ -42,6 +60,20 @@ def eval_model(
         False,
         False
     )
+
+    return __eval_model(model, data_loader, writer, step)
+
+
+def __eval_model(
+        model: AOSRestoration,
+        data_loader: DataLoader,
+        writer: Union[SummaryWriter, None] = None,
+        step: int = 0,
+) -> Tuple[float, float, float]:
+    total_psnr = 0.0
+    total_ssim = 0.0
+    total_mse = 0.0
+    n_iter = 0
 
     model.eval()
     device = model.device

@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from data import get_aos_loader
 from model import AOSRestoration
-from train.eval import eval_model
+from train.eval import validate_model
 from utils import Config, get_device
 
 GRADIENT_AGGREGATION = 8
@@ -79,7 +79,7 @@ def train(config: Config):
 
         if n_iter % config.eval_period == 0 or n_iter == config.num_iter:
             writer.add_scalar(tag="train_loss", scalar_value=avg_loss, global_step=n_iter)
-            eval_psnr, eval_ssim, _ = eval_model(model, config, writer, n_iter, 100)
+            eval_psnr, eval_ssim, _ = validate_model(model, config, writer, n_iter, 100)
 
             if config.save_each_model or eval_psnr > best_eval_psnr or eval_ssim > best_eval_ssim:
                 if eval_psnr > best_eval_psnr:

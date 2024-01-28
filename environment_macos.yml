@@ -222,4 +222,3 @@ dependencies:
     - tbparse==0.0.8
     - torcheval==0.0.7
     - torchviz==0.0.2
-prefix: /Users/PhilippSchmidt/miniforge3/envs/AOSRestormer

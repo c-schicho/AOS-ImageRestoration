@@ -31,6 +31,7 @@ class Config:
         self.workers: int = args.workers
         self.model_file: str = args.model_file
         self.train: bool = args.train
+        self.test: bool = args.test
         self.eval_period: int = args.eval_period
         self.run_id: str = args.run_id
         self.save_each_model: bool = args.save_each_model
@@ -71,7 +72,8 @@ def parse_args() -> Config:
     parser.add_argument("--workers", type=int, default=1, help="number of data loading workers")
     parser.add_argument("--seed", type=int, default=-1, help="random seed (-1 for no manual seed)")
     parser.add_argument("--model_file", type=str, default=None, help="path of pre-trained model file")
-    parser.add_argument("--train", type=bool, default=False, help="whether to train or test the model")
+    parser.add_argument("--train", type=bool, default=False, help="whether to train the model")
+    parser.add_argument("--test", type=bool, default=False, help="whether to test the model")
     parser.add_argument("--eval_period", type=int, default=10_000, help="eval after each num of iterations")
     parser.add_argument("--run_id", type=str, default="D9_submission", help="id for the tensorboard results")
     parser.add_argument("--save_each_model", type=bool, default=False,

@@ -2,7 +2,7 @@ import glob
 import os
 import random
 from itertools import groupby
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Tuple
 
 import cv2
 import numpy as np
@@ -14,9 +14,9 @@ from torch.utils.data import Dataset
 from torchvision.transforms.functional import crop, hflip, vflip
 
 
-class AOSInferenceDataset(Dataset):
+class AOSSubmissionDataset(Dataset):
 
-    def __init__(self, path: str, focal_stack: list[int] = [10, 50, 150]):
+    def __init__(self, path: str, focal_stack: list[int] = [10, 50, 150], with_ground_truth: bool = False):
         """
         Args:
             path (str): Path to the folder containing the images.
@@ -24,13 +24,14 @@ class AOSInferenceDataset(Dataset):
         """
         self.path = path
         self.focal_stack = focal_stack
-        self.data = self._load_data()
+        self.with_ground_truth = with_ground_truth
         self.transform = transforms.Compose([
             transforms.ToPILImage(),
             transforms.ToTensor(),
         ])
+        self.data = self._load_data()
 
-    def _load_data(self) -> List[List[str]]:
+    def _load_data(self) -> List[Dict[str, List[str]]]:
         all_images = glob.glob(os.path.join(self.path, "**", "*.png"), recursive=True)
         all_images.sort(key=self.__get_unique_id)
         grouped_images = {
@@ -41,22 +42,33 @@ class AOSInferenceDataset(Dataset):
         focal_plane_search_strings = [f"{focal_plane:03d}" for focal_plane in self.focal_stack]
 
         for key, files in grouped_images.items():
+            ground_truth_paths = list(filter(lambda file: 'GT' in file, files))
             input_paths = list(filter(lambda file: file.split('_')[-2] in focal_plane_search_strings, files))
+            input_paths.sort(key=lambda path: int(path.split('_')[-2]))
 
-            if len(input_paths) != len(self.focal_stack):
-                print("Warning: Incomplete focal stack found. Skipping image.")
+            if len(input_paths) == 0 or (self.with_ground_truth and len(ground_truth_paths) == 0):
                 continue
 
-            input_paths.sort(key=lambda path: int(path.split('_')[-2]))
-            data.append(input_paths)
+            data.append(
+                {
+                    'ground_truth_path': ground_truth_paths[0] if len(ground_truth_paths) > 0 else None,
+                    'input_paths': input_paths
+                }
+            )
 
         return data
 
     def __len__(self) -> int:
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> torch.Tensor:
-        feature_filenames = self.data[idx]
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        data_dict = self.data[idx]
+        feature_filenames = data_dict['input_paths']
+        ground_truth_filename = data_dict['ground_truth_path']
+
+        while len(feature_filenames) < len(self.focal_stack):
+            feature_filenames.append(feature_filenames[-1])
+
         image_shape = io.imread(feature_filenames[0]).shape
         h, w = image_shape[0], image_shape[1]
         features = np.zeros((h, w, len(feature_filenames)))
@@ -71,6 +83,13 @@ class AOSInferenceDataset(Dataset):
                 print("Warning: Image has an unexpected shape. Skipping image.")
 
         features = self.transform(features.astype('uint8'))
+
+        if self.with_ground_truth:
+            ground_truth = io.imread(ground_truth_filename)
+            ground_truth = self.transform(ground_truth.astype('uint8'))
+
+            return features, ground_truth
+
         return features
 
     @staticmethod
